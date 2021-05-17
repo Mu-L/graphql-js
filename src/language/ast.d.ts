@@ -85,7 +85,6 @@ export class Token {
     end: number,
     line: number,
     column: number,
-    prev: Token | null,
     value?: string,
   );
 
