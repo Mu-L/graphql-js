@@ -92,7 +92,7 @@ export async function subscribe(
   // the GraphQL specification. The `execute` function provides the
   // "ExecuteSubscriptionEvent" algorithm, as it is nearly identical to the
   // "ExecuteQuery" algorithm, for which `execute` is also used.
-  const mapSourceToResponse = (payload) =>
+  const mapSourceToResponse = (payload: unknown) =>
     execute({
       schema,
       document,

@@ -33,7 +33,9 @@ describe('mapAsyncIterator', () => {
 
       next(): Promise<IteratorResult<number, void>> {
         if (items.length > 0) {
-          return Promise.resolve({ done: false, value: items.shift() });
+          const value = items[0];
+          items.shift();
+          return Promise.resolve({ done: false, value });
         }
 
         return Promise.resolve({ done: true, value: undefined });
@@ -130,9 +132,11 @@ describe('mapAsyncIterator', () => {
         return this;
       },
       next() {
+        const value = items[0];
+        items.shift();
         return Promise.resolve({
           done: items.length === 0,
-          value: items.shift(),
+          value,
         });
       },
     };
@@ -194,9 +198,11 @@ describe('mapAsyncIterator', () => {
         return this;
       },
       next() {
+        const value = items[0];
+        items.shift();
         return Promise.resolve({
           done: items.length === 0,
-          value: items.shift(),
+          value,
         });
       },
     };
