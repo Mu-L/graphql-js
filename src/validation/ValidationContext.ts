@@ -44,7 +44,7 @@ interface VariableUsage {
 export class ASTValidationContext {
   private _ast: DocumentNode;
   private _onError: (error: GraphQLError) => void;
-  private _fragments: Maybe<ObjMap<FragmentDefinitionNode>>;
+  private _fragments: ObjMap<FragmentDefinitionNode> | undefined;
   private _fragmentSpreads: Map<
     SelectionSetNode,
     ReadonlyArray<FragmentSpreadNode>
@@ -72,15 +72,19 @@ export class ASTValidationContext {
   }
 
   getFragment(name: string): Maybe<FragmentDefinitionNode> {
-    if (!this._fragments) {
-      const fragments = (this._fragments = Object.create(null));
+    let fragments: ObjMap<FragmentDefinitionNode>;
+    if (this._fragments) {
+      fragments = this._fragments;
+    } else {
+      fragments = Object.create(null);
       for (const defNode of this.getDocument().definitions) {
         if (defNode.kind === Kind.FRAGMENT_DEFINITION) {
           fragments[defNode.name.value] = defNode;
         }
       }
+      this._fragments = fragments;
     }
-    return this._fragments[name];
+    return fragments[name];
   }
 
   getFragmentSpreads(
@@ -90,8 +94,8 @@ export class ASTValidationContext {
     if (!spreads) {
       spreads = [];
       const setsToVisit: Array<SelectionSetNode> = [node];
-      while (setsToVisit.length !== 0) {
-        const set = setsToVisit.pop();
+      let set: SelectionSetNode | undefined;
+      while ((set = setsToVisit.pop())) {
         for (const selection of set.selections) {
           if (selection.kind === Kind.FRAGMENT_SPREAD) {
             // @ts-expect-error FIXME: TS Conversion
@@ -114,8 +118,8 @@ export class ASTValidationContext {
       fragments = [];
       const collectedNames = Object.create(null);
       const nodesToVisit: Array<SelectionSetNode> = [operation.selectionSet];
-      while (nodesToVisit.length !== 0) {
-        const node = nodesToVisit.pop();
+      let node: SelectionSetNode | undefined;
+      while ((node = nodesToVisit.pop())) {
         for (const spread of this.getFragmentSpreads(node)) {
           const fragName = spread.name.value;
           if (collectedNames[fragName] !== true) {
@@ -189,7 +193,7 @@ export class ValidationContext extends ASTValidationContext {
   getVariableUsages(node: NodeWithSelectionSet): ReadonlyArray<VariableUsage> {
     let usages = this._variableUsages.get(node);
     if (!usages) {
-      const newUsages = [];
+      const newUsages: Array<VariableUsage> = [];
       const typeInfo = new TypeInfo(this._schema);
       visit(
         node,
