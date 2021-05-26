@@ -758,8 +758,8 @@ export class GraphQLObjectType<TSource = any, TContext = any> {
     this.astNode = config.astNode;
     this.extensionASTNodes = config.extensionASTNodes ?? [];
 
-    this._fields = defineFieldMap.bind(undefined, config);
-    this._interfaces = defineInterfaces.bind(undefined, config);
+    this._fields = () => defineFieldMap(config);
+    this._interfaces = () => defineInterfaces(config);
     devAssert(typeof config.name === 'string', 'Must provide name.');
     devAssert(
       config.isTypeOf == null || typeof config.isTypeOf === 'function',
@@ -810,8 +810,7 @@ export class GraphQLObjectType<TSource = any, TContext = any> {
 
 function defineInterfaces(
   config: Readonly<
-    | GraphQLObjectTypeConfig<unknown, unknown>
-    | GraphQLInterfaceTypeConfig<unknown, unknown>
+    GraphQLObjectTypeConfig<any, any> | GraphQLInterfaceTypeConfig<any, any>
   >,
 ): Array<GraphQLInterfaceType> {
   const interfaces = resolveArrayThunk(config.interfaces ?? []);

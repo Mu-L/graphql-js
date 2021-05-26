@@ -9,6 +9,12 @@ import type {
   NamedTypeNode,
   DirectiveNode,
   OperationTypeNode,
+  ObjectTypeDefinitionNode,
+  ObjectTypeExtensionNode,
+  InterfaceTypeDefinitionNode,
+  InterfaceTypeExtensionNode,
+  UnionTypeDefinitionNode,
+  UnionTypeExtensionNode,
 } from '../language/ast';
 
 import { isValidNameError } from '../utilities/assertValidName';
@@ -21,6 +27,7 @@ import type {
   GraphQLUnionType,
   GraphQLEnumType,
   GraphQLInputObjectType,
+  GraphQLInputField,
 } from './definition';
 import { assertSchema } from './schema';
 import { isIntrospectionType } from './introspection';
@@ -85,7 +92,7 @@ class SchemaValidationContext {
   readonly _errors: Array<GraphQLError>;
   readonly schema: GraphQLSchema;
 
-  constructor(schema) {
+  constructor(schema: GraphQLSchema) {
     this._errors = [];
     this.schema = schema;
   }
@@ -94,7 +101,9 @@ class SchemaValidationContext {
     message: string,
     nodes?: ReadonlyArray<Maybe<ASTNode>> | Maybe<ASTNode>,
   ): void {
-    const _nodes = Array.isArray(nodes) ? nodes.filter(Boolean) : nodes;
+    const _nodes = Array.isArray(nodes)
+      ? (nodes.filter(Boolean) as ReadonlyArray<ASTNode>)
+      : (nodes as Maybe<ASTNode>);
     this.addError(new GraphQLError(message, _nodes));
   }
 
@@ -559,7 +568,7 @@ function createInputObjectCircularRefsValidator(
   const visitedTypes = Object.create(null);
 
   // Array of types nodes used to produce meaningful errors
-  const fieldPath = [];
+  const fieldPath: Array<GraphQLInputField> = [];
 
   // Position in the type path
   const fieldPathIndexByTypeName = Object.create(null);
@@ -607,8 +616,12 @@ function getAllImplementsInterfaceNodes(
   iface: GraphQLInterfaceType,
 ): ReadonlyArray<NamedTypeNode> {
   const { astNode, extensionASTNodes } = type;
-  const nodes =
-    astNode != null ? [astNode, ...extensionASTNodes] : extensionASTNodes;
+  const nodes: ReadonlyArray<
+    | ObjectTypeDefinitionNode
+    | ObjectTypeExtensionNode
+    | InterfaceTypeDefinitionNode
+    | InterfaceTypeExtensionNode
+  > = astNode != null ? [astNode, ...extensionASTNodes] : extensionASTNodes;
 
   // istanbul ignore next (See: 'https://github.com/graphql/graphql-js/issues/2203')
   return nodes
@@ -621,7 +634,7 @@ function getUnionMemberTypeNodes(
   typeName: string,
 ): Maybe<ReadonlyArray<NamedTypeNode>> {
   const { astNode, extensionASTNodes } = union;
-  const nodes =
+  const nodes: ReadonlyArray<UnionTypeDefinitionNode | UnionTypeExtensionNode> =
     astNode != null ? [astNode, ...extensionASTNodes] : extensionASTNodes;
 
   // istanbul ignore next (See: 'https://github.com/graphql/graphql-js/issues/2203')
