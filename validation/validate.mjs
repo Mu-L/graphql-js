@@ -1,4 +1,3 @@
-import { devAssert } from '../jsutils/devAssert.mjs';
 import { GraphQLError } from '../error/GraphQLError.mjs';
 import { visit, visitInParallel } from '../language/visitor.mjs';
 import { assertValidSchema } from '../type/validate.mjs';
@@ -21,61 +20,57 @@ import {
  * (see the language/visitor API). Visitor methods are expected to return
  * GraphQLErrors, or Arrays of GraphQLErrors when invalid.
  *
+ * Validate will stop validation after a `maxErrors` limit has been reached.
+ * Attackers can send pathologically invalid queries to induce a DoS attack,
+ * so by default `maxErrors` set to 100 errors.
+ *
  * Optionally a custom TypeInfo instance may be provided. If not provided, one
  * will be created from the provided schema.
  */
-
 export function validate(
   schema,
   documentAST,
   rules = specifiedRules,
-  options = {
-    maxErrors: undefined,
-  },
-  /** @deprecate will be removed in 17.0.0 */
+  options,
+  /** @deprecated will be removed in 17.0.0 */
   typeInfo = new TypeInfo(schema),
 ) {
-  documentAST || devAssert(false, 'Must provide document.'); // If the schema used for validation is invalid, throw an error.
-
+  const maxErrors = options?.maxErrors ?? 100;
+  // If the schema used for validation is invalid, throw an error.
   assertValidSchema(schema);
-  const abortObj = Object.freeze({});
+  const abortError = new GraphQLError(
+    'Too many validation errors, error limit reached. Validation aborted.',
+  );
   const errors = [];
   const context = new ValidationContext(
     schema,
     documentAST,
     typeInfo,
     (error) => {
-      if (options.maxErrors != null && errors.length >= options.maxErrors) {
-        errors.push(
-          new GraphQLError(
-            'Too many validation errors, error limit reached. Validation aborted.',
-          ),
-        ); // eslint-disable-next-line @typescript-eslint/no-throw-literal
-
-        throw abortObj;
+      if (errors.length >= maxErrors) {
+        throw abortError;
       }
-
       errors.push(error);
     },
-  ); // This uses a specialized visitor which runs multiple visitors in parallel,
+  );
+  // This uses a specialized visitor which runs multiple visitors in parallel,
   // while maintaining the visitor skip and break API.
-
-  const visitor = visitInParallel(rules.map((rule) => rule(context))); // Visit the whole document with each instance of all provided rules.
-
+  const visitor = visitInParallel(rules.map((rule) => rule(context)));
+  // Visit the whole document with each instance of all provided rules.
   try {
     visit(documentAST, visitWithTypeInfo(typeInfo, visitor));
   } catch (e) {
-    if (e !== abortObj) {
+    if (e === abortError) {
+      errors.push(abortError);
+    } else {
       throw e;
     }
   }
-
   return errors;
 }
 /**
  * @internal
  */
-
 export function validateSDL(
   documentAST,
   schemaToExtend,
@@ -99,10 +94,8 @@ export function validateSDL(
  *
  * @internal
  */
-
 export function assertValidSDL(documentAST) {
   const errors = validateSDL(documentAST);
-
   if (errors.length !== 0) {
     throw new Error(errors.map((error) => error.message).join('\n\n'));
   }
@@ -113,10 +106,8 @@ export function assertValidSDL(documentAST) {
  *
  * @internal
  */
-
 export function assertValidSDLExtension(documentAST, schema) {
   const errors = validateSDL(documentAST, schema);
-
   if (errors.length !== 0) {
     throw new Error(errors.map((error) => error.message).join('\n\n'));
   }

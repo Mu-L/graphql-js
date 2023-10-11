@@ -1,10 +1,10 @@
-import type { Maybe } from '../jsutils/Maybe';
-import type { DirectiveDefinitionNode } from '../language/ast';
-import type { DirectiveLocationEnum } from '../language/directiveLocation';
+import type { Maybe } from '../jsutils/Maybe.js';
+import type { DirectiveDefinitionNode } from '../language/ast.js';
+import { DirectiveLocation } from '../language/directiveLocation.js';
 import type {
   GraphQLArgument,
   GraphQLFieldConfigArgumentMap,
-} from './definition';
+} from './definition.js';
 /**
  * Test if the given value is a GraphQL directive.
  */
@@ -31,21 +31,21 @@ export interface GraphQLDirectiveExtensions {
 export declare class GraphQLDirective {
   name: string;
   description: Maybe<string>;
-  locations: Array<DirectiveLocationEnum>;
+  locations: ReadonlyArray<DirectiveLocation>;
   args: ReadonlyArray<GraphQLArgument>;
   isRepeatable: boolean;
-  extensions: Maybe<Readonly<GraphQLDirectiveExtensions>>;
+  extensions: Readonly<GraphQLDirectiveExtensions>;
   astNode: Maybe<DirectiveDefinitionNode>;
   constructor(config: Readonly<GraphQLDirectiveConfig>);
+  get [Symbol.toStringTag](): string;
   toConfig(): GraphQLDirectiveNormalizedConfig;
   toString(): string;
   toJSON(): string;
-  get [Symbol.toStringTag](): string;
 }
 export interface GraphQLDirectiveConfig {
   name: string;
   description?: Maybe<string>;
-  locations: Array<DirectiveLocationEnum>;
+  locations: ReadonlyArray<DirectiveLocation>;
   args?: Maybe<GraphQLFieldConfigArgumentMap>;
   isRepeatable?: Maybe<boolean>;
   extensions?: Maybe<Readonly<GraphQLDirectiveExtensions>>;
@@ -54,7 +54,7 @@ export interface GraphQLDirectiveConfig {
 interface GraphQLDirectiveNormalizedConfig extends GraphQLDirectiveConfig {
   args: GraphQLFieldConfigArgumentMap;
   isRepeatable: boolean;
-  extensions: Maybe<Readonly<GraphQLDirectiveExtensions>>;
+  extensions: Readonly<GraphQLDirectiveExtensions>;
 }
 /**
  * Used to conditionally include fields or fragments.
@@ -65,6 +65,14 @@ export declare const GraphQLIncludeDirective: GraphQLDirective;
  */
 export declare const GraphQLSkipDirective: GraphQLDirective;
 /**
+ * Used to conditionally defer fragments.
+ */
+export declare const GraphQLDeferDirective: GraphQLDirective;
+/**
+ * Used to conditionally stream list fields.
+ */
+export declare const GraphQLStreamDirective: GraphQLDirective;
+/**
  * Constant string used for default reason for a deprecation.
  */
 export declare const DEFAULT_DEPRECATION_REASON = 'No longer supported';
@@ -73,9 +81,13 @@ export declare const DEFAULT_DEPRECATION_REASON = 'No longer supported';
  */
 export declare const GraphQLDeprecatedDirective: GraphQLDirective;
 /**
- * Used to provide a URL for specifying the behaviour of custom scalar definitions.
+ * Used to provide a URL for specifying the behavior of custom scalar definitions.
  */
 export declare const GraphQLSpecifiedByDirective: GraphQLDirective;
+/**
+ * Used to indicate an Input Object is a OneOf Input Object.
+ */
+export declare const GraphQLOneOfDirective: GraphQLDirective;
 /**
  * The full list of specified directives.
  */

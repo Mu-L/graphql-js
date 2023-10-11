@@ -1,9 +1,9 @@
-import type { Maybe } from '../jsutils/Maybe';
-import { GraphQLError } from '../error/GraphQLError';
-import type { DocumentNode } from '../language/ast';
-import type { GraphQLSchema } from '../type/schema';
-import { TypeInfo } from '../utilities/TypeInfo';
-import type { SDLValidationRule, ValidationRule } from './ValidationContext';
+import type { Maybe } from '../jsutils/Maybe.js';
+import { GraphQLError } from '../error/GraphQLError.js';
+import type { DocumentNode } from '../language/ast.js';
+import type { GraphQLSchema } from '../type/schema.js';
+import { TypeInfo } from '../utilities/TypeInfo.js';
+import type { SDLValidationRule, ValidationRule } from './ValidationContext.js';
 /**
  * Implements the "Validation" section of the spec.
  *
@@ -17,6 +17,10 @@ import type { SDLValidationRule, ValidationRule } from './ValidationContext';
  * (see the language/visitor API). Visitor methods are expected to return
  * GraphQLErrors, or Arrays of GraphQLErrors when invalid.
  *
+ * Validate will stop validation after a `maxErrors` limit has been reached.
+ * Attackers can send pathologically invalid queries to induce a DoS attack,
+ * so by default `maxErrors` set to 100 errors.
+ *
  * Optionally a custom TypeInfo instance may be provided. If not provided, one
  * will be created from the provided schema.
  */
@@ -27,7 +31,7 @@ export declare function validate(
   options?: {
     maxErrors?: number;
   },
-  /** @deprecate will be removed in 17.0.0 */
+  /** @deprecated will be removed in 17.0.0 */
   typeInfo?: TypeInfo,
 ): ReadonlyArray<GraphQLError>;
 /**

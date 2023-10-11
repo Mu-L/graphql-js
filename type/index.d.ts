@@ -1,15 +1,9 @@
-export type { Path as ResponsePath } from '../jsutils/Path';
+export type { Path as ResponsePath } from '../jsutils/Path.js';
+export { isSchema, assertSchema, GraphQLSchema } from './schema.js';
+export type { GraphQLSchemaConfig, GraphQLSchemaExtensions } from './schema.js';
 export {
-  /** Predicate */
-  isSchema,
-  /** Assertion */
-  assertSchema,
-  /** GraphQL Schema definition */
-  GraphQLSchema,
-} from './schema';
-export type { GraphQLSchemaConfig, GraphQLSchemaExtensions } from './schema';
-export {
-  /** Predicates */
+  resolveObjMapThunk,
+  resolveReadonlyArrayThunk,
   isType,
   isScalarType,
   isObjectType,
@@ -29,7 +23,6 @@ export {
   isNamedType,
   isRequiredArgument,
   isRequiredInputField,
-  /** Assertions */
   assertType,
   assertScalarType,
   assertObjectType,
@@ -47,20 +40,17 @@ export {
   assertWrappingType,
   assertNullableType,
   assertNamedType,
-  /** Un-modifiers */
   getNullableType,
   getNamedType,
-  /** Definitions */
   GraphQLScalarType,
   GraphQLObjectType,
   GraphQLInterfaceType,
   GraphQLUnionType,
   GraphQLEnumType,
   GraphQLInputObjectType,
-  /** Type Wrappers */
   GraphQLList,
   GraphQLNonNull,
-} from './definition';
+} from './definition.js';
 export type {
   GraphQLType,
   GraphQLInputType,
@@ -70,10 +60,12 @@ export type {
   GraphQLAbstractType,
   GraphQLWrappingType,
   GraphQLNullableType,
+  GraphQLNullableInputType,
+  GraphQLNullableOutputType,
   GraphQLNamedType,
   GraphQLNamedInputType,
   GraphQLNamedOutputType,
-  ThunkArray,
+  ThunkReadonlyArray,
   ThunkObjMap,
   GraphQLArgument,
   GraphQLArgumentConfig,
@@ -112,44 +104,39 @@ export type {
   GraphQLScalarSerializer,
   GraphQLScalarValueParser,
   GraphQLScalarLiteralParser,
-} from './definition';
+} from './definition.js';
 export {
-  /** Predicate */
   isDirective,
-  /** Assertion */
   assertDirective,
-  /** Directives Definition */
   GraphQLDirective,
-  /** Built-in Directives defined by the Spec */
   isSpecifiedDirective,
   specifiedDirectives,
   GraphQLIncludeDirective,
   GraphQLSkipDirective,
+  GraphQLDeferDirective,
+  GraphQLStreamDirective,
   GraphQLDeprecatedDirective,
   GraphQLSpecifiedByDirective,
-  /** Constant Deprecation Reason */
+  GraphQLOneOfDirective,
   DEFAULT_DEPRECATION_REASON,
-} from './directives';
+} from './directives.js';
 export type {
   GraphQLDirectiveConfig,
   GraphQLDirectiveExtensions,
-} from './directives';
-/** Common built-in scalar instances. */
+} from './directives.js';
 export {
-  /** Predicate */
   isSpecifiedScalarType,
-  /** Standard GraphQL Scalars */
   specifiedScalarTypes,
   GraphQLInt,
   GraphQLFloat,
   GraphQLString,
   GraphQLBoolean,
   GraphQLID,
-} from './scalars';
+  GRAPHQL_MAX_INT,
+  GRAPHQL_MIN_INT,
+} from './scalars.js';
 export {
-  /** Predicate */
   isIntrospectionType,
-  /** GraphQL Types for introspection. */
   introspectionTypes,
   __Schema,
   __Directive,
@@ -159,14 +146,10 @@ export {
   __InputValue,
   __EnumValue,
   __TypeKind,
-  /** Meta-field definitions. */
+  TypeKind,
   SchemaMetaFieldDef,
   TypeMetaFieldDef,
   TypeNameMetaFieldDef,
-} from './introspection';
-export type {
-  /** "Enum" of Type Kinds */
-  TypeKind,
-} from './introspection';
-/** Validate GraphQL schema. */
-export { validateSchema, assertValidSchema } from './validate';
+} from './introspection.js';
+export { validateSchema, assertValidSchema } from './validate.js';
+export { assertName, assertEnumValueName } from './assertName.js';

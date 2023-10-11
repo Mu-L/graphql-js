@@ -1,18 +1,10 @@
 'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true,
-});
-exports.stripIgnoredCharacters = stripIgnoredCharacters;
-
-var _source = require('../language/source.js');
-
-var _tokenKind = require('../language/tokenKind.js');
-
-var _lexer = require('../language/lexer.js');
-
-var _blockString = require('../language/blockString.js');
-
+Object.defineProperty(exports, '__esModule', { value: true });
+exports.stripIgnoredCharacters = void 0;
+const blockString_js_1 = require('../language/blockString.js');
+const lexer_js_1 = require('../language/lexer.js');
+const source_js_1 = require('../language/source.js');
+const tokenKind_js_1 = require('../language/tokenKind.js');
 /**
  * Strips characters that are not significant to the validity or execution
  * of a GraphQL document:
@@ -35,6 +27,7 @@ var _blockString = require('../language/blockString.js');
  *
  * Query example:
  *
+ * ```graphql
  * query SomeQuery($foo: String!, $bar: String) {
  *   someField(foo: $foo, bar: $bar) {
  *     a
@@ -44,13 +37,17 @@ var _blockString = require('../language/blockString.js');
  *     }
  *   }
  * }
+ * ```
  *
  * Becomes:
  *
+ * ```graphql
  * query SomeQuery($foo:String!$bar:String){someField(foo:$foo bar:$bar){a b{c d}}}
+ * ```
  *
  * SDL example:
  *
+ * ```graphql
  * """
  * Type description
  * """
@@ -60,21 +57,23 @@ var _blockString = require('../language/blockString.js');
  *   """
  *   bar: String
  * }
+ * ```
  *
  * Becomes:
  *
+ * ```graphql
  * """Type description""" type Foo{"""Field description""" bar:String}
+ * ```
  */
 function stripIgnoredCharacters(source) {
-  const sourceObj = (0, _source.isSource)(source)
+  const sourceObj = (0, source_js_1.isSource)(source)
     ? source
-    : new _source.Source(source);
+    : new source_js_1.Source(source);
   const body = sourceObj.body;
-  const lexer = new _lexer.Lexer(sourceObj);
+  const lexer = new lexer_js_1.Lexer(sourceObj);
   let strippedBody = '';
   let wasLastAddedTokenNonPunctuator = false;
-
-  while (lexer.advance().kind !== _tokenKind.TokenKind.EOF) {
+  while (lexer.advance().kind !== tokenKind_js_1.TokenKind.EOF) {
     const currentToken = lexer.token;
     const tokenKind = currentToken.kind;
     /**
@@ -82,49 +81,28 @@ function stripIgnoredCharacters(source) {
      * Also prevent case of non-punctuator token following by spread resulting
      * in invalid token (e.g. `1...` is invalid Float token).
      */
-
-    const isNonPunctuator = !(0, _lexer.isPunctuatorTokenKind)(
+    const isNonPunctuator = !(0, lexer_js_1.isPunctuatorTokenKind)(
       currentToken.kind,
     );
-
     if (wasLastAddedTokenNonPunctuator) {
       if (
         isNonPunctuator ||
-        currentToken.kind === _tokenKind.TokenKind.SPREAD
+        currentToken.kind === tokenKind_js_1.TokenKind.SPREAD
       ) {
         strippedBody += ' ';
       }
     }
-
     const tokenBody = body.slice(currentToken.start, currentToken.end);
-
-    if (tokenKind === _tokenKind.TokenKind.BLOCK_STRING) {
-      strippedBody += dedentBlockString(tokenBody);
+    if (tokenKind === tokenKind_js_1.TokenKind.BLOCK_STRING) {
+      strippedBody += (0, blockString_js_1.printBlockString)(
+        currentToken.value,
+        { minimize: true },
+      );
     } else {
       strippedBody += tokenBody;
     }
-
     wasLastAddedTokenNonPunctuator = isNonPunctuator;
   }
-
   return strippedBody;
 }
-
-function dedentBlockString(blockStr) {
-  // skip leading and trailing triple quotations
-  const rawStr = blockStr.slice(3, -3);
-  let body = (0, _blockString.dedentBlockStringValue)(rawStr);
-
-  if ((0, _blockString.getBlockStringIndentation)(body) > 0) {
-    body = '\n' + body;
-  }
-
-  const lastChar = body[body.length - 1];
-  const hasTrailingQuote = lastChar === '"' && body.slice(-4) !== '\\"""';
-
-  if (hasTrailingQuote || lastChar === '\\') {
-    body += '\n';
-  }
-
-  return '"""' + body + '"""';
-}
+exports.stripIgnoredCharacters = stripIgnoredCharacters;

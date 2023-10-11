@@ -1,17 +1,13 @@
+import { Kind } from '../language/kinds.mjs';
 /**
  * Provided a collection of ASTs, presumably each from different files,
  * concatenate the ASTs together into batched AST, useful for validating many
  * GraphQL source files which together represent one conceptual application.
  */
 export function concatAST(documents) {
-  let definitions = [];
-
+  const definitions = [];
   for (const doc of documents) {
-    definitions = definitions.concat(doc.definitions);
+    definitions.push(...doc.definitions);
   }
-
-  return {
-    kind: 'Document',
-    definitions,
-  };
+  return { kind: Kind.DOCUMENT, definitions };
 }

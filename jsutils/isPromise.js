@@ -1,18 +1,11 @@
 'use strict';
-
-Object.defineProperty(exports, '__esModule', {
-  value: true,
-});
-exports.isPromise = isPromise;
-
+Object.defineProperty(exports, '__esModule', { value: true });
+exports.isPromise = void 0;
 /**
  * Returns true if the value acts like a Promise, i.e. has a "then" function,
  * otherwise returns false.
  */
 function isPromise(value) {
-  // eslint-disable-next-line @typescript-eslint/dot-notation
-  return (
-    typeof (value === null || value === void 0 ? void 0 : value['then']) ===
-    'function'
-  );
+  return typeof value?.then === 'function';
 }
+exports.isPromise = isPromise;

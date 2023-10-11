@@ -1,5 +1,5 @@
-import type { Maybe } from '../jsutils/Maybe';
-import type { DirectiveLocationEnum } from '../language/directiveLocation';
+import type { Maybe } from '../jsutils/Maybe.js';
+import type { DirectiveLocation } from '../language/directiveLocation.js';
 export interface IntrospectionOptions {
   /**
    * Whether to include descriptions in the introspection result.
@@ -27,6 +27,10 @@ export interface IntrospectionOptions {
    */
   inputValueDeprecation?: boolean;
 }
+/**
+ * Produce the GraphQL query recommended for a full schema introspection.
+ * Accepts optional IntrospectionOptions.
+ */
 export declare function getIntrospectionQuery(
   options?: IntrospectionOptions,
 ): string;
@@ -45,20 +49,20 @@ export interface IntrospectionSchema {
   readonly types: ReadonlyArray<IntrospectionType>;
   readonly directives: ReadonlyArray<IntrospectionDirective>;
 }
-export declare type IntrospectionType =
+export type IntrospectionType =
   | IntrospectionScalarType
   | IntrospectionObjectType
   | IntrospectionInterfaceType
   | IntrospectionUnionType
   | IntrospectionEnumType
   | IntrospectionInputObjectType;
-export declare type IntrospectionOutputType =
+export type IntrospectionOutputType =
   | IntrospectionScalarType
   | IntrospectionObjectType
   | IntrospectionInterfaceType
   | IntrospectionUnionType
   | IntrospectionEnumType;
-export declare type IntrospectionInputType =
+export type IntrospectionInputType =
   | IntrospectionScalarType
   | IntrospectionEnumType
   | IntrospectionInputObjectType;
@@ -121,20 +125,20 @@ export interface IntrospectionNonNullTypeRef<
   readonly kind: 'NON_NULL';
   readonly ofType: T;
 }
-export declare type IntrospectionTypeRef =
+export type IntrospectionTypeRef =
   | IntrospectionNamedTypeRef
   | IntrospectionListTypeRef
   | IntrospectionNonNullTypeRef<
       IntrospectionNamedTypeRef | IntrospectionListTypeRef
     >;
-export declare type IntrospectionOutputTypeRef =
+export type IntrospectionOutputTypeRef =
   | IntrospectionNamedTypeRef<IntrospectionOutputType>
   | IntrospectionListTypeRef<IntrospectionOutputTypeRef>
   | IntrospectionNonNullTypeRef<
       | IntrospectionNamedTypeRef<IntrospectionOutputType>
       | IntrospectionListTypeRef<IntrospectionOutputTypeRef>
     >;
-export declare type IntrospectionInputTypeRef =
+export type IntrospectionInputTypeRef =
   | IntrospectionNamedTypeRef<IntrospectionInputType>
   | IntrospectionListTypeRef<IntrospectionInputTypeRef>
   | IntrospectionNonNullTypeRef<
@@ -173,6 +177,6 @@ export interface IntrospectionDirective {
   readonly name: string;
   readonly description?: Maybe<string>;
   readonly isRepeatable?: boolean;
-  readonly locations: ReadonlyArray<DirectiveLocationEnum>;
+  readonly locations: ReadonlyArray<DirectiveLocation>;
   readonly args: ReadonlyArray<IntrospectionInputValue>;
 }

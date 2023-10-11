@@ -1,12 +1,12 @@
 import type {
-  TypeNode,
-  NamedTypeNode,
   ListTypeNode,
+  NamedTypeNode,
   NonNullTypeNode,
-} from '../language/ast';
-import type { GraphQLSchema } from '../type/schema';
-import type { GraphQLType, GraphQLNamedType } from '../type/definition';
-import { GraphQLList, GraphQLNonNull } from '../type/definition';
+  TypeNode,
+} from '../language/ast.js';
+import type { GraphQLNamedType, GraphQLType } from '../type/definition.js';
+import { GraphQLList, GraphQLNonNull } from '../type/definition.js';
+import type { GraphQLSchema } from '../type/schema.js';
 /**
  * Given a Schema and an AST node describing a type, return a GraphQLType
  * definition which applies to that type. For example, if provided the parsed

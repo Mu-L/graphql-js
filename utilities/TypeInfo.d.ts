@@ -1,17 +1,17 @@
-import type { ASTVisitor } from '../language/visitor';
-import type { ASTNode, FieldNode } from '../language/ast';
-import type { Maybe } from '../jsutils/Maybe';
-import type { GraphQLSchema } from '../type/schema';
-import type { GraphQLDirective } from '../type/directives';
+import type { Maybe } from '../jsutils/Maybe.js';
+import type { ASTNode, FieldNode } from '../language/ast.js';
+import type { ASTVisitor } from '../language/visitor.js';
 import type {
-  GraphQLType,
+  GraphQLArgument,
+  GraphQLCompositeType,
+  GraphQLEnumValue,
+  GraphQLField,
   GraphQLInputType,
   GraphQLOutputType,
-  GraphQLCompositeType,
-  GraphQLField,
-  GraphQLArgument,
-  GraphQLEnumValue,
-} from '../type/definition';
+  GraphQLType,
+} from '../type/definition.js';
+import type { GraphQLDirective } from '../type/directives.js';
+import type { GraphQLSchema } from '../type/schema.js';
 /**
  * TypeInfo is a utility class which, given a GraphQL schema, can keep track
  * of the current field and type definitions at any point in a GraphQL document
@@ -38,6 +38,7 @@ export declare class TypeInfo {
     /** @deprecated will be removed in 17.0.0 */
     getFieldDefFn?: GetFieldDefFn,
   );
+  get [Symbol.toStringTag](): string;
   getType(): Maybe<GraphQLOutputType>;
   getParentType(): Maybe<GraphQLCompositeType>;
   getInputType(): Maybe<GraphQLInputType>;
@@ -50,9 +51,9 @@ export declare class TypeInfo {
   enter(node: ASTNode): void;
   leave(node: ASTNode): void;
 }
-declare type GetFieldDefFn = (
+type GetFieldDefFn = (
   schema: GraphQLSchema,
-  parentType: GraphQLType,
+  parentType: GraphQLCompositeType,
   fieldNode: FieldNode,
 ) => Maybe<GraphQLField<unknown, unknown>>;
 /**

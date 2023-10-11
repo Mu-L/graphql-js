@@ -1,12 +1,13 @@
 import { GraphQLError } from '../../error/GraphQLError.mjs';
 import { Kind } from '../../language/kinds.mjs';
 import { isExecutableDefinitionNode } from '../../language/predicates.mjs';
-
 /**
  * Executable definitions
  *
  * A GraphQL document is only valid for execution if all definitions are either
  * operation or fragment definitions.
+ *
+ * See https://spec.graphql.org/draft/#sec-Executable-Definitions
  */
 export function ExecutableDefinitionsRule(context) {
   return {
@@ -19,14 +20,12 @@ export function ExecutableDefinitionsRule(context) {
               ? 'schema'
               : '"' + definition.name.value + '"';
           context.reportError(
-            new GraphQLError(
-              `The ${defName} definition is not executable.`,
-              definition,
-            ),
+            new GraphQLError(`The ${defName} definition is not executable.`, {
+              nodes: definition,
+            }),
           );
         }
       }
-
       return false;
     },
   };

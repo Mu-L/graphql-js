@@ -1,51 +1,58 @@
-import { keyMap } from '../jsutils/keyMap.mjs';
 import { inspect } from '../jsutils/inspect.mjs';
 import { invariant } from '../jsutils/invariant.mjs';
-import { naturalCompare } from '../jsutils/naturalCompare.mjs';
+import { keyMap } from '../jsutils/keyMap.mjs';
 import { print } from '../language/printer.mjs';
-import { visit } from '../language/visitor.mjs';
-import { isSpecifiedScalarType } from '../type/scalars.mjs';
 import {
-  isScalarType,
-  isObjectType,
-  isInterfaceType,
-  isUnionType,
   isEnumType,
   isInputObjectType,
-  isNonNullType,
+  isInterfaceType,
   isListType,
   isNamedType,
+  isNonNullType,
+  isObjectType,
   isRequiredArgument,
   isRequiredInputField,
+  isScalarType,
+  isUnionType,
 } from '../type/definition.mjs';
+import { isSpecifiedScalarType } from '../type/scalars.mjs';
 import { astFromValue } from './astFromValue.mjs';
-export const BreakingChangeType = Object.freeze({
-  TYPE_REMOVED: 'TYPE_REMOVED',
-  TYPE_CHANGED_KIND: 'TYPE_CHANGED_KIND',
-  TYPE_REMOVED_FROM_UNION: 'TYPE_REMOVED_FROM_UNION',
-  VALUE_REMOVED_FROM_ENUM: 'VALUE_REMOVED_FROM_ENUM',
-  REQUIRED_INPUT_FIELD_ADDED: 'REQUIRED_INPUT_FIELD_ADDED',
-  IMPLEMENTED_INTERFACE_REMOVED: 'IMPLEMENTED_INTERFACE_REMOVED',
-  FIELD_REMOVED: 'FIELD_REMOVED',
-  FIELD_CHANGED_KIND: 'FIELD_CHANGED_KIND',
-  REQUIRED_ARG_ADDED: 'REQUIRED_ARG_ADDED',
-  ARG_REMOVED: 'ARG_REMOVED',
-  ARG_CHANGED_KIND: 'ARG_CHANGED_KIND',
-  DIRECTIVE_REMOVED: 'DIRECTIVE_REMOVED',
-  DIRECTIVE_ARG_REMOVED: 'DIRECTIVE_ARG_REMOVED',
-  REQUIRED_DIRECTIVE_ARG_ADDED: 'REQUIRED_DIRECTIVE_ARG_ADDED',
-  DIRECTIVE_REPEATABLE_REMOVED: 'DIRECTIVE_REPEATABLE_REMOVED',
-  DIRECTIVE_LOCATION_REMOVED: 'DIRECTIVE_LOCATION_REMOVED',
-});
-export const DangerousChangeType = Object.freeze({
-  VALUE_ADDED_TO_ENUM: 'VALUE_ADDED_TO_ENUM',
-  TYPE_ADDED_TO_UNION: 'TYPE_ADDED_TO_UNION',
-  OPTIONAL_INPUT_FIELD_ADDED: 'OPTIONAL_INPUT_FIELD_ADDED',
-  OPTIONAL_ARG_ADDED: 'OPTIONAL_ARG_ADDED',
-  IMPLEMENTED_INTERFACE_ADDED: 'IMPLEMENTED_INTERFACE_ADDED',
-  ARG_DEFAULT_VALUE_CHANGE: 'ARG_DEFAULT_VALUE_CHANGE',
-});
-
+import { sortValueNode } from './sortValueNode.mjs';
+export var BreakingChangeType;
+(function (BreakingChangeType) {
+  BreakingChangeType['TYPE_REMOVED'] = 'TYPE_REMOVED';
+  BreakingChangeType['TYPE_CHANGED_KIND'] = 'TYPE_CHANGED_KIND';
+  BreakingChangeType['TYPE_REMOVED_FROM_UNION'] = 'TYPE_REMOVED_FROM_UNION';
+  BreakingChangeType['VALUE_REMOVED_FROM_ENUM'] = 'VALUE_REMOVED_FROM_ENUM';
+  BreakingChangeType['REQUIRED_INPUT_FIELD_ADDED'] =
+    'REQUIRED_INPUT_FIELD_ADDED';
+  BreakingChangeType['IMPLEMENTED_INTERFACE_REMOVED'] =
+    'IMPLEMENTED_INTERFACE_REMOVED';
+  BreakingChangeType['FIELD_REMOVED'] = 'FIELD_REMOVED';
+  BreakingChangeType['FIELD_CHANGED_KIND'] = 'FIELD_CHANGED_KIND';
+  BreakingChangeType['REQUIRED_ARG_ADDED'] = 'REQUIRED_ARG_ADDED';
+  BreakingChangeType['ARG_REMOVED'] = 'ARG_REMOVED';
+  BreakingChangeType['ARG_CHANGED_KIND'] = 'ARG_CHANGED_KIND';
+  BreakingChangeType['DIRECTIVE_REMOVED'] = 'DIRECTIVE_REMOVED';
+  BreakingChangeType['DIRECTIVE_ARG_REMOVED'] = 'DIRECTIVE_ARG_REMOVED';
+  BreakingChangeType['REQUIRED_DIRECTIVE_ARG_ADDED'] =
+    'REQUIRED_DIRECTIVE_ARG_ADDED';
+  BreakingChangeType['DIRECTIVE_REPEATABLE_REMOVED'] =
+    'DIRECTIVE_REPEATABLE_REMOVED';
+  BreakingChangeType['DIRECTIVE_LOCATION_REMOVED'] =
+    'DIRECTIVE_LOCATION_REMOVED';
+})(BreakingChangeType || (BreakingChangeType = {}));
+export var DangerousChangeType;
+(function (DangerousChangeType) {
+  DangerousChangeType['VALUE_ADDED_TO_ENUM'] = 'VALUE_ADDED_TO_ENUM';
+  DangerousChangeType['TYPE_ADDED_TO_UNION'] = 'TYPE_ADDED_TO_UNION';
+  DangerousChangeType['OPTIONAL_INPUT_FIELD_ADDED'] =
+    'OPTIONAL_INPUT_FIELD_ADDED';
+  DangerousChangeType['OPTIONAL_ARG_ADDED'] = 'OPTIONAL_ARG_ADDED';
+  DangerousChangeType['IMPLEMENTED_INTERFACE_ADDED'] =
+    'IMPLEMENTED_INTERFACE_ADDED';
+  DangerousChangeType['ARG_DEFAULT_VALUE_CHANGE'] = 'ARG_DEFAULT_VALUE_CHANGE';
+})(DangerousChangeType || (DangerousChangeType = {}));
 /**
  * Given two schemas, returns an Array containing descriptions of all the types
  * of breaking changes covered by the other functions down below.
@@ -60,38 +67,32 @@ export function findBreakingChanges(oldSchema, newSchema) {
  * Given two schemas, returns an Array containing descriptions of all the types
  * of potentially dangerous changes covered by the other functions down below.
  */
-
 export function findDangerousChanges(oldSchema, newSchema) {
   // @ts-expect-error
   return findSchemaChanges(oldSchema, newSchema).filter(
     (change) => change.type in DangerousChangeType,
   );
 }
-
 function findSchemaChanges(oldSchema, newSchema) {
   return [
     ...findTypeChanges(oldSchema, newSchema),
     ...findDirectiveChanges(oldSchema, newSchema),
   ];
 }
-
 function findDirectiveChanges(oldSchema, newSchema) {
   const schemaChanges = [];
   const directivesDiff = diff(
     oldSchema.getDirectives(),
     newSchema.getDirectives(),
   );
-
   for (const oldDirective of directivesDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.DIRECTIVE_REMOVED,
       description: `${oldDirective.name} was removed.`,
     });
   }
-
   for (const [oldDirective, newDirective] of directivesDiff.persisted) {
     const argsDiff = diff(oldDirective.args, newDirective.args);
-
     for (const newArg of argsDiff.added) {
       if (isRequiredArgument(newArg)) {
         schemaChanges.push({
@@ -100,21 +101,18 @@ function findDirectiveChanges(oldSchema, newSchema) {
         });
       }
     }
-
     for (const oldArg of argsDiff.removed) {
       schemaChanges.push({
         type: BreakingChangeType.DIRECTIVE_ARG_REMOVED,
         description: `${oldArg.name} was removed from ${oldDirective.name}.`,
       });
     }
-
     if (oldDirective.isRepeatable && !newDirective.isRepeatable) {
       schemaChanges.push({
         type: BreakingChangeType.DIRECTIVE_REPEATABLE_REMOVED,
         description: `Repeatable flag was removed from ${oldDirective.name}.`,
       });
     }
-
     for (const location of oldDirective.locations) {
       if (!newDirective.locations.includes(location)) {
         schemaChanges.push({
@@ -124,17 +122,14 @@ function findDirectiveChanges(oldSchema, newSchema) {
       }
     }
   }
-
   return schemaChanges;
 }
-
 function findTypeChanges(oldSchema, newSchema) {
   const schemaChanges = [];
   const typesDiff = diff(
     Object.values(oldSchema.getTypeMap()),
     Object.values(newSchema.getTypeMap()),
   );
-
   for (const oldType of typesDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.TYPE_REMOVED,
@@ -143,7 +138,6 @@ function findTypeChanges(oldSchema, newSchema) {
         : `${oldType.name} was removed.`,
     });
   }
-
   for (const [oldType, newType] of typesDiff.persisted) {
     if (isEnumType(oldType) && isEnumType(newType)) {
       schemaChanges.push(...findEnumTypeChanges(oldType, newType));
@@ -170,17 +164,14 @@ function findTypeChanges(oldSchema, newSchema) {
       });
     }
   }
-
   return schemaChanges;
 }
-
 function findInputObjectTypeChanges(oldType, newType) {
   const schemaChanges = [];
   const fieldsDiff = diff(
     Object.values(oldType.getFields()),
     Object.values(newType.getFields()),
   );
-
   for (const newField of fieldsDiff.added) {
     if (isRequiredInputField(newField)) {
       schemaChanges.push({
@@ -194,20 +185,17 @@ function findInputObjectTypeChanges(oldType, newType) {
       });
     }
   }
-
   for (const oldField of fieldsDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.FIELD_REMOVED,
       description: `${oldType.name}.${oldField.name} was removed.`,
     });
   }
-
   for (const [oldField, newField] of fieldsDiff.persisted) {
     const isSafe = isChangeSafeForInputObjectFieldOrFieldArg(
       oldField.type,
       newField.type,
     );
-
     if (!isSafe) {
       schemaChanges.push({
         type: BreakingChangeType.FIELD_CHANGED_KIND,
@@ -217,94 +205,77 @@ function findInputObjectTypeChanges(oldType, newType) {
       });
     }
   }
-
   return schemaChanges;
 }
-
 function findUnionTypeChanges(oldType, newType) {
   const schemaChanges = [];
   const possibleTypesDiff = diff(oldType.getTypes(), newType.getTypes());
-
   for (const newPossibleType of possibleTypesDiff.added) {
     schemaChanges.push({
       type: DangerousChangeType.TYPE_ADDED_TO_UNION,
       description: `${newPossibleType.name} was added to union type ${oldType.name}.`,
     });
   }
-
   for (const oldPossibleType of possibleTypesDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.TYPE_REMOVED_FROM_UNION,
       description: `${oldPossibleType.name} was removed from union type ${oldType.name}.`,
     });
   }
-
   return schemaChanges;
 }
-
 function findEnumTypeChanges(oldType, newType) {
   const schemaChanges = [];
   const valuesDiff = diff(oldType.getValues(), newType.getValues());
-
   for (const newValue of valuesDiff.added) {
     schemaChanges.push({
       type: DangerousChangeType.VALUE_ADDED_TO_ENUM,
       description: `${newValue.name} was added to enum type ${oldType.name}.`,
     });
   }
-
   for (const oldValue of valuesDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.VALUE_REMOVED_FROM_ENUM,
       description: `${oldValue.name} was removed from enum type ${oldType.name}.`,
     });
   }
-
   return schemaChanges;
 }
-
 function findImplementedInterfacesChanges(oldType, newType) {
   const schemaChanges = [];
   const interfacesDiff = diff(oldType.getInterfaces(), newType.getInterfaces());
-
   for (const newInterface of interfacesDiff.added) {
     schemaChanges.push({
       type: DangerousChangeType.IMPLEMENTED_INTERFACE_ADDED,
       description: `${newInterface.name} added to interfaces implemented by ${oldType.name}.`,
     });
   }
-
   for (const oldInterface of interfacesDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.IMPLEMENTED_INTERFACE_REMOVED,
       description: `${oldType.name} no longer implements interface ${oldInterface.name}.`,
     });
   }
-
   return schemaChanges;
 }
-
 function findFieldChanges(oldType, newType) {
   const schemaChanges = [];
   const fieldsDiff = diff(
     Object.values(oldType.getFields()),
     Object.values(newType.getFields()),
   );
-
   for (const oldField of fieldsDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.FIELD_REMOVED,
       description: `${oldType.name}.${oldField.name} was removed.`,
     });
   }
-
   for (const [oldField, newField] of fieldsDiff.persisted) {
     schemaChanges.push(...findArgChanges(oldType, oldField, newField));
     const isSafe = isChangeSafeForObjectOrInterfaceField(
       oldField.type,
       newField.type,
     );
-
     if (!isSafe) {
       schemaChanges.push({
         type: BreakingChangeType.FIELD_CHANGED_KIND,
@@ -314,27 +285,22 @@ function findFieldChanges(oldType, newType) {
       });
     }
   }
-
   return schemaChanges;
 }
-
 function findArgChanges(oldType, oldField, newField) {
   const schemaChanges = [];
   const argsDiff = diff(oldField.args, newField.args);
-
   for (const oldArg of argsDiff.removed) {
     schemaChanges.push({
       type: BreakingChangeType.ARG_REMOVED,
       description: `${oldType.name}.${oldField.name} arg ${oldArg.name} was removed.`,
     });
   }
-
   for (const [oldArg, newArg] of argsDiff.persisted) {
     const isSafe = isChangeSafeForInputObjectFieldOrFieldArg(
       oldArg.type,
       newArg.type,
     );
-
     if (!isSafe) {
       schemaChanges.push({
         type: BreakingChangeType.ARG_CHANGED_KIND,
@@ -354,7 +320,6 @@ function findArgChanges(oldType, oldField, newField) {
         // represented inside introspection.
         const oldValueStr = stringifyValue(oldArg.defaultValue, oldArg.type);
         const newValueStr = stringifyValue(newArg.defaultValue, newArg.type);
-
         if (oldValueStr !== newValueStr) {
           schemaChanges.push({
             type: DangerousChangeType.ARG_DEFAULT_VALUE_CHANGE,
@@ -364,7 +329,6 @@ function findArgChanges(oldType, oldField, newField) {
       }
     }
   }
-
   for (const newArg of argsDiff.added) {
     if (isRequiredArgument(newArg)) {
       schemaChanges.push({
@@ -378,10 +342,8 @@ function findArgChanges(oldType, oldField, newField) {
       });
     }
   }
-
   return schemaChanges;
 }
-
 function isChangeSafeForObjectOrInterfaceField(oldType, newType) {
   if (isListType(oldType)) {
     return (
@@ -390,12 +352,12 @@ function isChangeSafeForObjectOrInterfaceField(oldType, newType) {
         isChangeSafeForObjectOrInterfaceField(
           oldType.ofType,
           newType.ofType,
-        )) || // moving from nullable to non-null of the same underlying type is safe
+        )) ||
+      // moving from nullable to non-null of the same underlying type is safe
       (isNonNullType(newType) &&
         isChangeSafeForObjectOrInterfaceField(oldType, newType.ofType))
     );
   }
-
   if (isNonNullType(oldType)) {
     // if they're both non-null, make sure the underlying types are compatible
     return (
@@ -403,15 +365,14 @@ function isChangeSafeForObjectOrInterfaceField(oldType, newType) {
       isChangeSafeForObjectOrInterfaceField(oldType.ofType, newType.ofType)
     );
   }
-
   return (
     // if they're both named types, see if their names are equivalent
-    (isNamedType(newType) && oldType.name === newType.name) || // moving from nullable to non-null of the same underlying type is safe
+    (isNamedType(newType) && oldType.name === newType.name) ||
+    // moving from nullable to non-null of the same underlying type is safe
     (isNonNullType(newType) &&
       isChangeSafeForObjectOrInterfaceField(oldType, newType.ofType))
   );
 }
-
 function isChangeSafeForInputObjectFieldOrFieldArg(oldType, newType) {
   if (isListType(oldType)) {
     // if they're both lists, make sure the underlying types are compatible
@@ -420,7 +381,6 @@ function isChangeSafeForInputObjectFieldOrFieldArg(oldType, newType) {
       isChangeSafeForInputObjectFieldOrFieldArg(oldType.ofType, newType.ofType)
     );
   }
-
   if (isNonNullType(oldType)) {
     return (
       // if they're both non-null, make sure the underlying types are
@@ -429,85 +389,61 @@ function isChangeSafeForInputObjectFieldOrFieldArg(oldType, newType) {
         isChangeSafeForInputObjectFieldOrFieldArg(
           oldType.ofType,
           newType.ofType,
-        )) || // moving from non-null to nullable of the same underlying type is safe
+        )) ||
+      // moving from non-null to nullable of the same underlying type is safe
       (!isNonNullType(newType) &&
         isChangeSafeForInputObjectFieldOrFieldArg(oldType.ofType, newType))
     );
-  } // if they're both named types, see if their names are equivalent
-
+  }
+  // if they're both named types, see if their names are equivalent
   return isNamedType(newType) && oldType.name === newType.name;
 }
-
 function typeKindName(type) {
   if (isScalarType(type)) {
     return 'a Scalar type';
   }
-
   if (isObjectType(type)) {
     return 'an Object type';
   }
-
   if (isInterfaceType(type)) {
     return 'an Interface type';
   }
-
   if (isUnionType(type)) {
     return 'a Union type';
   }
-
   if (isEnumType(type)) {
     return 'an Enum type';
-  } // istanbul ignore else (See: 'https://github.com/graphql/graphql-js/issues/2618')
-
+  }
   if (isInputObjectType(type)) {
     return 'an Input type';
-  } // istanbul ignore next (Not reachable. All possible named types have been considered)
-
+  }
+  /* c8 ignore next 3 */
+  // Not reachable, all possible types have been considered.
   false || invariant(false, 'Unexpected type: ' + inspect(type));
 }
-
 function stringifyValue(value, type) {
   const ast = astFromValue(value, type);
   ast != null || invariant(false);
-  const sortedAST = visit(ast, {
-    ObjectValue(objectNode) {
-      // Make a copy since sort mutates array
-      const fields = [...objectNode.fields];
-      fields.sort((fieldA, fieldB) =>
-        naturalCompare(fieldA.name.value, fieldB.name.value),
-      );
-      return { ...objectNode, fields };
-    },
-  });
-  return print(sortedAST);
+  return print(sortValueNode(ast));
 }
-
 function diff(oldArray, newArray) {
   const added = [];
   const removed = [];
   const persisted = [];
   const oldMap = keyMap(oldArray, ({ name }) => name);
   const newMap = keyMap(newArray, ({ name }) => name);
-
   for (const oldItem of oldArray) {
     const newItem = newMap[oldItem.name];
-
     if (newItem === undefined) {
       removed.push(oldItem);
     } else {
       persisted.push([oldItem, newItem]);
     }
   }
-
   for (const newItem of newArray) {
     if (oldMap[newItem.name] === undefined) {
       added.push(newItem);
     }
   }
-
-  return {
-    added,
-    persisted,
-    removed,
-  };
+  return { added, persisted, removed };
 }

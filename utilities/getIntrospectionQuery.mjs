@@ -1,3 +1,7 @@
+/**
+ * Produce the GraphQL query recommended for a full schema introspection.
+ * Accepts optional IntrospectionOptions.
+ */
 export function getIntrospectionQuery(options) {
   const optionsWithDefault = {
     descriptions: true,
@@ -17,11 +21,9 @@ export function getIntrospectionQuery(options) {
   const schemaDescription = optionsWithDefault.schemaDescription
     ? descriptions
     : '';
-
   function inputDeprecation(str) {
     return optionsWithDefault.inputValueDeprecation ? str : '';
   }
-
   return `
     query IntrospectionQuery {
       __schema {
@@ -111,6 +113,14 @@ export function getIntrospectionQuery(options) {
                   ofType {
                     kind
                     name
+                    ofType {
+                      kind
+                      name
+                      ofType {
+                        kind
+                        name
+                      }
+                    }
                   }
                 }
               }

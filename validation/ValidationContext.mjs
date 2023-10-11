@@ -1,7 +1,6 @@
 import { Kind } from '../language/kinds.mjs';
 import { visit } from '../language/visitor.mjs';
 import { TypeInfo, visitWithTypeInfo } from '../utilities/TypeInfo.mjs';
-
 /**
  * An instance of this class is passed as the "this" context to all validators,
  * allowing access to commonly useful contextual information from within a
@@ -15,85 +14,71 @@ export class ASTValidationContext {
     this._recursivelyReferencedFragments = new Map();
     this._onError = onError;
   }
-
+  get [Symbol.toStringTag]() {
+    return 'ASTValidationContext';
+  }
   reportError(error) {
     this._onError(error);
   }
-
   getDocument() {
     return this._ast;
   }
-
   getFragment(name) {
-    if (!this._fragments) {
-      const fragments = (this._fragments = Object.create(null));
-
+    let fragments;
+    if (this._fragments) {
+      fragments = this._fragments;
+    } else {
+      fragments = Object.create(null);
       for (const defNode of this.getDocument().definitions) {
         if (defNode.kind === Kind.FRAGMENT_DEFINITION) {
           fragments[defNode.name.value] = defNode;
         }
       }
+      this._fragments = fragments;
     }
-
-    return this._fragments[name];
+    return fragments[name];
   }
-
   getFragmentSpreads(node) {
     let spreads = this._fragmentSpreads.get(node);
-
     if (!spreads) {
       spreads = [];
       const setsToVisit = [node];
-
-      while (setsToVisit.length !== 0) {
-        const set = setsToVisit.pop();
-
+      let set;
+      while ((set = setsToVisit.pop())) {
         for (const selection of set.selections) {
           if (selection.kind === Kind.FRAGMENT_SPREAD) {
-            // @ts-expect-error FIXME: TS Conversion
             spreads.push(selection);
           } else if (selection.selectionSet) {
             setsToVisit.push(selection.selectionSet);
           }
         }
       }
-
       this._fragmentSpreads.set(node, spreads);
     }
-
     return spreads;
   }
-
   getRecursivelyReferencedFragments(operation) {
     let fragments = this._recursivelyReferencedFragments.get(operation);
-
     if (!fragments) {
       fragments = [];
-      const collectedNames = Object.create(null);
+      const collectedNames = new Set();
       const nodesToVisit = [operation.selectionSet];
-
-      while (nodesToVisit.length !== 0) {
-        const node = nodesToVisit.pop();
-
+      let node;
+      while ((node = nodesToVisit.pop())) {
         for (const spread of this.getFragmentSpreads(node)) {
           const fragName = spread.name.value;
-
-          if (collectedNames[fragName] !== true) {
-            collectedNames[fragName] = true;
+          if (!collectedNames.has(fragName)) {
+            collectedNames.add(fragName);
             const fragment = this.getFragment(fragName);
-
             if (fragment) {
-              // @ts-expect-error FIXME: TS Conversion
               fragments.push(fragment);
               nodesToVisit.push(fragment.selectionSet);
             }
           }
         }
       }
-
       this._recursivelyReferencedFragments.set(operation, fragments);
     }
-
     return fragments;
   }
 }
@@ -102,7 +87,9 @@ export class SDLValidationContext extends ASTValidationContext {
     super(ast, onError);
     this._schema = schema;
   }
-
+  get [Symbol.toStringTag]() {
+    return 'SDLValidationContext';
+  }
   getSchema() {
     return this._schema;
   }
@@ -115,14 +102,14 @@ export class ValidationContext extends ASTValidationContext {
     this._variableUsages = new Map();
     this._recursiveVariableUsages = new Map();
   }
-
+  get [Symbol.toStringTag]() {
+    return 'ValidationContext';
+  }
   getSchema() {
     return this._schema;
   }
-
   getVariableUsages(node) {
     let usages = this._variableUsages.get(node);
-
     if (!usages) {
       const newUsages = [];
       const typeInfo = new TypeInfo(this._schema);
@@ -130,7 +117,6 @@ export class ValidationContext extends ASTValidationContext {
         node,
         visitWithTypeInfo(typeInfo, {
           VariableDefinition: () => false,
-
           Variable(variable) {
             newUsages.push({
               node: variable,
@@ -141,57 +127,42 @@ export class ValidationContext extends ASTValidationContext {
         }),
       );
       usages = newUsages;
-
       this._variableUsages.set(node, usages);
     }
-
     return usages;
   }
-
   getRecursiveVariableUsages(operation) {
     let usages = this._recursiveVariableUsages.get(operation);
-
     if (!usages) {
       usages = this.getVariableUsages(operation);
-
       for (const frag of this.getRecursivelyReferencedFragments(operation)) {
         usages = usages.concat(this.getVariableUsages(frag));
       }
-
       this._recursiveVariableUsages.set(operation, usages);
     }
-
     return usages;
   }
-
   getType() {
     return this._typeInfo.getType();
   }
-
   getParentType() {
     return this._typeInfo.getParentType();
   }
-
   getInputType() {
     return this._typeInfo.getInputType();
   }
-
   getParentInputType() {
     return this._typeInfo.getParentInputType();
   }
-
   getFieldDef() {
     return this._typeInfo.getFieldDef();
   }
-
   getDirective() {
     return this._typeInfo.getDirective();
   }
-
   getArgument() {
     return this._typeInfo.getArgument();
   }
-
   getEnumValue() {
     return this._typeInfo.getEnumValue();
   }
