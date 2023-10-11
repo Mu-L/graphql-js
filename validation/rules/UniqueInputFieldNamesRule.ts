@@ -1,4 +1,6 @@
+import { invariant } from '../../jsutils/invariant.ts';
 import { GraphQLError } from '../../error/GraphQLError.ts';
+import type { NameNode } from '../../language/ast.ts';
 import type { ASTVisitor } from '../../language/visitor.ts';
 import type { ASTValidationContext } from '../ValidationContext.ts';
 /**
@@ -6,37 +8,38 @@ import type { ASTValidationContext } from '../ValidationContext.ts';
  *
  * A GraphQL input object value is only valid if all supplied fields are
  * uniquely named.
+ *
+ * See https://spec.graphql.org/draft/#sec-Input-Object-Field-Uniqueness
  */
-
 export function UniqueInputFieldNamesRule(
   context: ASTValidationContext,
 ): ASTVisitor {
-  const knownNameStack = [];
-  let knownNames = Object.create(null);
+  const knownNameStack: Array<Map<string, NameNode>> = [];
+  let knownNames = new Map<string, NameNode>();
   return {
     ObjectValue: {
       enter() {
         knownNameStack.push(knownNames);
-        knownNames = Object.create(null);
+        knownNames = new Map();
       },
-
       leave() {
-        knownNames = knownNameStack.pop();
+        const prevKnownNames = knownNameStack.pop();
+        prevKnownNames != null || invariant(false);
+        knownNames = prevKnownNames;
       },
     },
-
     ObjectField(node) {
       const fieldName = node.name.value;
-
-      if (knownNames[fieldName]) {
+      const knownName = knownNames.get(fieldName);
+      if (knownName != null) {
         context.reportError(
           new GraphQLError(
             `There can be only one input field named "${fieldName}".`,
-            [knownNames[fieldName], node.name],
+            { nodes: [knownName, node.name] },
           ),
         );
       } else {
-        knownNames[fieldName] = node.name;
+        knownNames.set(fieldName, node.name);
       }
     },
   };
